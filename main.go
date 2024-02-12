@@ -54,6 +54,14 @@ func handleTrasactions(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	limite, limiteErr := getLimite(id)
+
+	if limiteErr != nil {
+		w.WriteHeader(404)
+		w.Write([]byte("User not found"))
+		return
+	}
+
 	var t transaction
 
 	err := json.NewDecoder(r.Body).Decode(&t)
@@ -62,6 +70,8 @@ func handleTrasactions(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Invalid values."))
 		return
 	}
+
+	t.Client_id = id
 
 	if len(t.Descricao) > 10 || t.Descricao == "" {
 		w.WriteHeader(422)
@@ -85,18 +95,11 @@ func handleTrasactions(w http.ResponseWriter, r *http.Request) {
 		saldo = saldo + t.Valor
 		fmt.Println(saldo)
 
-		limite, err := getLimite(id)
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-
 		res := trasactionResponse{
 			Limite: limite,
 			Saldo:  saldo,
 		}
 
-		t.Client_id = id
 		newTransaction := createTransaction(t)
 		if newTransaction != nil {
 			w.WriteHeader(422)
@@ -117,8 +120,50 @@ func handleTrasactions(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// fmt.Println(id)
-	// fmt.Println(t)
-	// w.Write([]byte("alive"))
+	if t.Tipo == "d" {
+		saldo, err := getSaldo(id)
+		fmt.Println(saldo)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
 
+		totalCredit := saldo + limite
+		fmt.Println(saldo)
+
+		if totalCredit >= t.Valor {
+			saldo = saldo - t.Valor
+			fmt.Println(saldo)
+		} else {
+			w.WriteHeader(422)
+			w.Write([]byte("Insuficient Funds"))
+			return
+		}
+
+		res := trasactionResponse{
+			Limite: limite,
+			Saldo:  saldo,
+		}
+
+		newTransaction := createTransaction(t)
+		if newTransaction != nil {
+			w.WriteHeader(422)
+			w.Write([]byte("Somthing went wrong"))
+			return
+		}
+
+		fmt.Println(saldo)
+
+		errSaldo := updateSaldo(saldo, id)
+		if errSaldo != nil {
+			w.WriteHeader(422)
+			w.Write([]byte("Somthing went wrong"))
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(200)
+		json.NewEncoder(w).Encode(res)
+		return
+	}
 }
