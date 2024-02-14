@@ -2,6 +2,13 @@
 
 ## Ygor Carmo
 
+To create the image run:
+
+```
+    docker build --tag "rinha" .
+```
+
+
 Submissão feita com:
 
 - `nginx` como load balancer
