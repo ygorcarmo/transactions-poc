@@ -67,3 +67,22 @@ func updateSaldo(saldo int, cliente_id int) error {
 	}
 	return nil
 }
+
+func getTransactions(cliente_id int) ([]Transacao, error) {
+	rows, err := db.Query("SELECT valor, tipo, descricao, realizada_em FROM transacoes WHERE cliente_id = $1 LIMIT 10;", cliente_id)
+	if err != nil {
+		fmt.Printf("Error when getting transacoes: %v\n", err)
+		return nil, err
+	}
+	var transacoes []Transacao
+	for rows.Next() {
+		var transaction Transacao
+		if err := rows.Scan(&transaction.Valor, &transaction.Tipo, &transaction.Descricao, &transaction.Realizada_em); err != nil {
+			fmt.Printf("Somthing went wrong when serializing rows: %v", err)
+			return nil, err
+		}
+		transacoes = append(transacoes, transaction)
+	}
+
+	return transacoes, nil
+}

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
@@ -27,6 +28,26 @@ type trasactionResponse struct {
 	Saldo  int `json:"saldo"`
 }
 
+type Saldo_extrato struct {
+	Total        int       `json:"total"`
+	Data_extrato time.Time `json:"data_extrato"`
+	Limite       int       `json:"limite"`
+}
+
+type Transacao struct {
+	Valor        int    `json:"valor"`
+	Tipo         string `json:"tipo"`
+	Descricao    string `json:"descricao"`
+	Realizada_em string `json:"realizada_em"`
+}
+
+type Transacoes []Transacao
+
+type extrato_response struct {
+	Saldo_extrato `json:"saldo"`
+	Transacoes    `json:"ultimas_transacoes"`
+}
+
 func main() {
 	port := fmt.Sprintf(":%s", os.Getenv("PORT"))
 	r := chi.NewRouter()
@@ -38,6 +59,7 @@ func main() {
 	})
 
 	r.Post("/clientes/{id}/transacoes", handleTrasactions)
+	r.Post("/clientes/{id}/extrato", handleExtrato)
 	fmt.Printf("Running on port %v", port)
 
 	http.ListenAndServe(port, r)
@@ -166,4 +188,55 @@ func handleTrasactions(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(res)
 		return
 	}
+}
+
+func handleExtrato(w http.ResponseWriter, r *http.Request) {
+	id, idErr := strconv.Atoi(chi.URLParam(r, "id"))
+
+	if idErr != nil {
+		w.WriteHeader(422)
+		w.Write([]byte("ID should be an int"))
+		return
+	}
+
+	limite, limiteErr := getLimite(id)
+
+	if limiteErr != nil {
+		w.WriteHeader(404)
+		w.Write([]byte("User not found"))
+		return
+	}
+
+	saldo, saldoerr := getSaldo(id)
+
+	if saldoerr != nil {
+		w.WriteHeader(422)
+		w.Write([]byte("something went wrong"))
+		return
+	}
+
+	saldot := Saldo_extrato{
+		Total:        saldo,
+		Data_extrato: time.Now(),
+		Limite:       limite,
+	}
+
+	transacoes, trerr := getTransactions(id)
+
+	if trerr != nil {
+		w.WriteHeader(422)
+		w.Write([]byte("Something went wrong when getting transactions"))
+		return
+	}
+
+	res := extrato_response{
+		Saldo_extrato: saldot,
+		Transacoes:    transacoes,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	json.NewEncoder(w).Encode(res)
+	return
+
 }
