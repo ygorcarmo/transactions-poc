@@ -58,8 +58,8 @@ func main() {
 		w.Write([]byte("alive"))
 	})
 
-	r.Post("/clientes/{id}/transacoes", handleTrasactions)
-	r.Post("/clientes/{id}/extrato", handleExtrato)
+	r.Post("/api/clientes/{id}/transacoes", handleTrasactions)
+	r.Post("/api/clientes/{id}/extrato", handleExtrato)
 	fmt.Printf("Running on port %v", port)
 
 	http.ListenAndServe(port, r)
@@ -75,7 +75,7 @@ func handleTrasactions(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("ID should be an int"))
 		return
 	}
-
+	fmt.Println(id)
 	limite, limiteErr := getLimite(id)
 
 	if limiteErr != nil {
