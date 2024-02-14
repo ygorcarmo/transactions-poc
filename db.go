@@ -69,7 +69,7 @@ func updateSaldo(saldo int, cliente_id int) error {
 }
 
 func getTransactions(cliente_id int) ([]Transacao, error) {
-	rows, err := db.Query("SELECT valor, tipo, descricao, realizada_em FROM transacoes WHERE cliente_id = $1 LIMIT 10;", cliente_id)
+	rows, err := db.Query("SELECT valor, tipo, descricao, realizada_em FROM transacoes WHERE cliente_id = $1 ORDER BY realizada_em DESC LIMIT 10;", cliente_id)
 	if err != nil {
 		fmt.Printf("Error when getting transacoes: %v\n", err)
 		return nil, err
